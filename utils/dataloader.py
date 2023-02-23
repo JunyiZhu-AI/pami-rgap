@@ -4,7 +4,7 @@ import random
 import torchvision.transforms as transformers
 
 
-def dataloader(dataset, mode, index, batchsize, config):
+def dataloader(dataset, mode, index, batchsize, config, seed=0):
     '''
     :param dataset: MNIST or CIFAR10
     :param mode: Train or reconstruction.
@@ -13,7 +13,7 @@ def dataloader(dataset, mode, index, batchsize, config):
     :param config: Some meta arguments.
     :return: Dataloader of pytorch in train mode and PIL image, as well as label in attack mode.
     '''
-    random.seed(0)
+    random.seed(seed)
     path = config['path_to_dataset']
     if dataset.lower() == "cifar10":
         trainset = torchvision.datasets.CIFAR10(root=path, train=True, download=True)
