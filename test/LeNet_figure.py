@@ -6,7 +6,12 @@ import json
 from utils import *
 from models import CNN6, CNN6d, FCN3, LeNetOutput
 from recursive_attack import r_gap, peeling, fcn_reconstruction, inverse_udldu
+import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
+import seaborn as sns
+sns.set(style="white", rc={'text.usetex': True})
+matplotlib.rcParams['text.latex.preamble'] = r"\usepackage{bm} \usepackage{amsmath} \usepackage{amsfonts}"
 
 with open("../config.yaml", 'r') as stream:
     config = yaml.safe_load(stream)
@@ -23,7 +28,7 @@ print(f'Running on {setup["device"]}, PyTorch version {torch.__version__}')
 def main():
     ratios_output = {1: [], 2: [], 3: [], 4: []}
     ratios_grad = {1: [], 2: [], 3: [], 4: []}
-    for i in range(10):
+    for i in range(2):
         train_sample, test_sample = dataloader(dataset=args.dataset, mode="attack", index=args.index,
                                                batchsize=2, config=config, seed=i)
         # set up inference framework
@@ -64,20 +69,51 @@ def main():
                 (torch.norm(output0[j] - output1[j]) / torch.norm(output1[j])).item()
             )
 
-    grad_res = {}
-    output_res = {}
-    for i in range(1, 5):
-        grad_res[i] = np.mean(ratios_grad[i])
-        output_res[i] = np.mean(ratios_output[i])
+    grad_res = {
+        'x': list(ratios_grad.keys()),
+        'y': [np.mean(r) for r in ratios_grad.values()]
+    }
+    output_res = {
+        'x': list(ratios_grad.keys()),
+        'y': [np.mean(r) for r in ratios_output.values()]
+    }
 
     res = {
         'grad': grad_res,
-        'ouput': output_res
+        'input': output_res
     }
 
     with open(os.path.join("/home/junyi/R-GAP/test", "LeNet_output.json"), "w") as f:
         json.dump(res, f, indent=4)
 
 
+def draw():
+    with open(os.path.join("/home/junyi/R-GAP/test", "LeNet_output.json")) as f:
+        data = json.load(f)
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 7))
+    sns.lineplot(data=data['grad'], x="x", y="y", linewidth=5, ax=ax)
+    plt.xticks(list(range(1, 5)))
+    ax.set_xlabel(r"Indices of layers: $i$", fontsize=35)
+    ax.set_ylabel(r"$\mathbb{E}\left[\|\nabla \boldsymbol{W}_i^m - \nabla \boldsymbol{W}_i^n\|/\|\nabla \boldsymbol{W}_i^n\|\right]$", fontsize=35)
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
+    ax.tick_params(labelsize=35)
+    plt.tight_layout()
+    plt.show()
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 7))
+    sns.lineplot(data=data['input'], x="x", y="y", linewidth=5, ax=ax)
+    plt.xticks(list(range(1, 5)))
+    ax.set_xlabel(r"Indices of layers: $i$", fontsize=35)
+    ax.set_ylabel(r"$\mathbb{E}\left[\|\boldsymbol{x}_i^m - \boldsymbol{x}_i^n\|/\| \boldsymbol{x}_i^n\|\right]$", fontsize=35)
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
+    ax.tick_params(labelsize=35)
+    plt.tight_layout()
+    plt.show()
+
+
 if __name__ == "__main__":
-    main()
+    # main()
+    draw()

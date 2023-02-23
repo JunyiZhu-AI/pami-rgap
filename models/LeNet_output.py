@@ -26,13 +26,13 @@ class LeNetOutput(nn.Module):
         ])
 
     def forward(self, x):
-        output = []
+        input = []
         for layer in self.body:
+            input.append(x)
             if isinstance(layer.layer, nn.Linear):
                 x = x.flatten(1)
             x = layer(x)
-            output.append(x)
-        return x, output
+        return x, input
 
     @staticmethod
     def name():
