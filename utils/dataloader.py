@@ -13,6 +13,7 @@ def dataloader(dataset, mode, index, batchsize, config):
     :param config: Some meta arguments.
     :return: Dataloader of pytorch in train mode and PIL image, as well as label in attack mode.
     '''
+    random.seed(0)
     path = config['path_to_dataset']
     if dataset.lower() == "cifar10":
         trainset = torchvision.datasets.CIFAR10(root=path, train=True, download=True)
