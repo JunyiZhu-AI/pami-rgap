@@ -91,7 +91,7 @@ def draw():
     with open(os.path.join("/home/junyi/R-GAP/test", "LeNet_output.json")) as f:
         data = json.load(f)
 
-    fig, ax = plt.subplots(1, 1, figsize=(8, 7))
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
     sns.lineplot(data=data['grad'], x="x", y="y", linewidth=5, ax=ax)
     plt.xticks(list(range(1, 5)))
     ax.set_xlabel(r"Indices of layers: $i$", fontsize=35)
@@ -102,7 +102,7 @@ def draw():
     plt.tight_layout()
     plt.show()
 
-    fig, ax = plt.subplots(1, 1, figsize=(8, 7))
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
     sns.lineplot(data=data['input'], x="x", y="y", linewidth=5, ax=ax)
     plt.xticks(list(range(1, 5)))
     ax.set_xlabel(r"Indices of layers: $i$", fontsize=35)
@@ -115,5 +115,5 @@ def draw():
 
 
 if __name__ == "__main__":
-    # main()
+    main()
     draw()
