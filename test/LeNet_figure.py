@@ -88,13 +88,13 @@ def main():
 
 
 def draw():
-    with open(os.path.join("/home/junyi/R-GAP/test", "LeNet_output.json")) as f:
+    with open(os.path.join("LeNet_output.json")) as f:
         data = json.load(f)
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-    sns.lineplot(data=data['grad'], x="x", y="y", linewidth=5, ax=ax)
+    sns.lineplot(data=data['grad'], x="x", y="y", linewidth=3, ax=ax)
     plt.xticks(list(range(1, 5)))
-    ax.set_xlabel(r"Indices of layers: $i$", fontsize=35)
+    ax.set_xlabel(r"Indices of layers $i$", fontsize=35)
     ax.set_ylabel(r"$\mathbb{E}\left[\|\nabla \boldsymbol{W}_i^m - \nabla \boldsymbol{W}_i^n\|/\|\nabla \boldsymbol{W}_i^n\|\right]$", fontsize=35)
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
     ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
@@ -103,9 +103,9 @@ def draw():
     plt.show()
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-    sns.lineplot(data=data['input'], x="x", y="y", linewidth=5, ax=ax)
+    sns.lineplot(data=data['input'], x="x", y="y", linewidth=3, ax=ax)
     plt.xticks(list(range(1, 5)))
-    ax.set_xlabel(r"Indices of layers: $i$", fontsize=35)
+    ax.set_xlabel(r"Indices of layers $i$", fontsize=35)
     ax.set_ylabel(r"$\mathbb{E}\left[\|\boldsymbol{x}_i^m - \boldsymbol{x}_i^n\|/\| \boldsymbol{x}_i^n\|\right]$", fontsize=35)
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
     ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
