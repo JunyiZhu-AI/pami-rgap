@@ -11,7 +11,7 @@ class LeNetOutput(nn.Module):
             x_ = 2 * torch.sigmoid(x_) - 1
             return x_
 
-        self.act = act
+        self.act = torch.sigmoid
 
         self.body = nn.ModuleList([
             nn.Sequential(OrderedDict([
