@@ -30,7 +30,7 @@ print(f'Running on {setup["device"]}, PyTorch version {torch.__version__}')
 def main():
     ratios_output = {1: [], 2: [], 3: [], 4: []}
     ratios_grad = {1: [], 2: [], 3: [], 4: []}
-    for i in range(50):
+    for i in range(100):
         train_sample, test_sample = dataloader(dataset=args.dataset, mode="attack", index=args.index,
                                                batchsize=2, config=config, seed=i)
         # set up inference framework
