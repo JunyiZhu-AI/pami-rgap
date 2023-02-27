@@ -30,7 +30,7 @@ print(f'Running on {setup["device"]}, PyTorch version {torch.__version__}')
 def main():
     ratios_output = {1: [], 2: [], 3: [], 4: []}
     ratios_grad = {1: [], 2: [], 3: [], 4: []}
-    for i in range(100):
+    for i in range(50):
         train_sample, test_sample = dataloader(dataset=args.dataset, mode="attack", index=args.index,
                                                batchsize=2, config=config, seed=i)
         # set up inference framework
@@ -85,62 +85,82 @@ def main():
         'input': output_res
     }
 
-    with open(os.path.join("/home/junyi/R-GAP/test", "LeNet_output.json"), "w") as f:
+    with open(os.path.join("/home/junyi/R-GAP/test", "LeNet_output_relu.json"), "w") as f:
         json.dump(res, f, indent=4)
 
 
 def draw():
-    # with open(os.path.join("LeNet_output.json")) as f:
-    #     data = json.load(f)
-    #
-    # fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-    # sns.lineplot(data=data['grad'], x="x", y="y", linewidth=3, ax=ax)
-    # plt.xticks(list(range(1, 5)))
-    # ax.set_xlabel(r"Indices of layers $i$", fontsize=35)
-    # ax.set_ylabel(r"$\mathbb{E}\left[\|\nabla \boldsymbol{W}_i^m - \nabla \boldsymbol{W}_i^n\|/\|\nabla \boldsymbol{W}_i^n\|\right]$", fontsize=35)
-    # ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-    # ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
-    # ax.tick_params(labelsize=35)
-    # plt.tight_layout()
-    # plt.show()
-    #
-    # fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-    # sns.lineplot(data=data['input'], x="x", y="y", linewidth=3, ax=ax)
-    # plt.xticks(list(range(1, 5)))
-    # ax.set_xlabel(r"Indices of layers $i$", fontsize=35)
-    # ax.set_ylabel(r"$\mathbb{E}\left[\|\boldsymbol{x}_i^m - \boldsymbol{x}_i^n\|/\| \boldsymbol{x}_i^n\|\right]$", fontsize=35)
-    # ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-    # ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
-    # ax.tick_params(labelsize=35)
-    # plt.tight_layout()
-    # plt.show()
-    #
-    # draw the sensitivity plot
-    x = torch.tensor(np.arange(0.1, 5, 0.1))
-    ratio1 = (torch.sigmoid(x) - torch.sigmoid(-x)) / (2 * x)
-    ratio2 = (torch.relu(x) - torch.relu(-x)) / (2 * x)
-    ratio3 = (torch.tanh(x) - torch.tanh(-x)) / (2 * x)
-    ratios = torch.concat([ratio1, ratio2, ratio3]).numpy()
-    x = np.tile(np.arange(0.1, 5, 0.1), 3)
-    data = {
-        'x': x,
-        'y': ratios,
-        'cat': np.concatenate([np.repeat("Sigmoid", 49), np.repeat("ReLU", 49), np.repeat("Tanh", 49)])
-    }
+    with open(os.path.join("LeNet_output.json")) as f:
+        data = json.load(f)
+        for k, v in data.items():
+            v['act'] = np.repeat('Sigmoid', len(v['x'])).tolist()
+    with open(os.path.join("LeNet_output_relu.json")) as f:
+        data_relu = json.load(f)
+        for k, v in data_relu.items():
+            v['act'] = np.repeat('ReLU', len(v['x'])).tolist()
+    with open(os.path.join("LeNet_output_tanh.json")) as f:
+        data_tanh = json.load(f)
+        for k, v in data_tanh.items():
+            v['act'] = np.repeat('Tanh', len(v['x'])).tolist()
+    for k, v in data.items():
+        for k_, v_ in v.items():
+            data[k][k_] += data_relu[k][k_]
+            data[k][k_] += data_tanh[k][k_]
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-    sns.lineplot(data=data, x=x, y="y", linewidth=3, ax=ax, hue='cat', style='cat')
-    plt.xticks(list(range(0, 5)))
-    ax.set_xlabel(r"Variable $x$", fontsize=35)
-    ax.set_ylabel(r"$(\sigma(x) - \sigma(-x)) / 2x$", fontsize=35)
+    sns.lineplot(data=data['grad'], x="x", y="y", linewidth=3, ax=ax, hue='act', style='act')
+    plt.xticks(list(range(1, 5)))
+    ax.set_xlabel(r"Indices of layers $i$", fontsize=35)
+    ax.set_ylabel(r"$\mathbb{E}\left[\|\nabla \boldsymbol{W}_i^m - \nabla \boldsymbol{W}_i^n\|/\|\nabla \boldsymbol{W}_i^n\|\right]$", fontsize=35)
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
     ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
-    leg = plt.legend(loc="upper right", title=r"Activation $\sigma$", fontsize=30, title_fontsize=30)
+    leg = plt.legend(loc="right", title=r"Activation $\sigma$", fontsize=30, title_fontsize=30)
     for legobj in leg.legendHandles:
         legobj.set_linewidth(3)
     ax.tick_params(labelsize=35)
     plt.tight_layout()
     plt.show()
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    sns.lineplot(data=data['input'], x="x", y="y", linewidth=3, ax=ax, hue='act', style='act')
+    plt.xticks(list(range(1, 5)))
+    ax.set_xlabel(r"Indices of layers $i$", fontsize=35)
+    ax.set_ylabel(r"$\mathbb{E}\left[\|\boldsymbol{x}_i^m - \boldsymbol{x}_i^n\|/\| \boldsymbol{x}_i^n\|\right]$", fontsize=35)
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
+    leg = plt.legend(loc="right", title=r"Activation $\sigma$", fontsize=30, title_fontsize=30)
+    for legobj in leg.legendHandles:
+        legobj.set_linewidth(3)
+    ax.tick_params(labelsize=35)
+    plt.tight_layout()
+    plt.show()
+
+    # # draw the sensitivity plot
+    # x = torch.tensor(np.arange(0.1, 5, 0.1))
+    # ratio1 = (torch.sigmoid(x) - torch.sigmoid(-x)) / (2 * x)
+    # ratio2 = (torch.relu(x) - torch.relu(-x)) / (2 * x)
+    # ratio3 = (torch.tanh(x) - torch.tanh(-x)) / (2 * x)
+    # ratios = torch.concat([ratio1, ratio2, ratio3]).numpy()
+    # x = np.tile(np.arange(0.1, 5, 0.1), 3)
+    # data = {
+    #     'x': x,
+    #     'y': ratios,
+    #     'cat': np.concatenate([np.repeat("Sigmoid", 49), np.repeat("ReLU", 49), np.repeat("Tanh", 49)])
+    # }
+    #
+    # fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    # sns.lineplot(data=data, x=x, y="y", linewidth=3, ax=ax, hue='cat', style='cat')
+    # plt.xticks(list(range(0, 5)))
+    # ax.set_xlabel(r"Variable $x$", fontsize=35)
+    # ax.set_ylabel(r"$(\sigma(x) - \sigma(-x)) / 2x$", fontsize=35)
+    # ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+    # ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
+    # leg = plt.legend(loc="upper right", title=r"Activation $\sigma$", fontsize=30, title_fontsize=30)
+    # for legobj in leg.legendHandles:
+    #     legobj.set_linewidth(3)
+    # ax.tick_params(labelsize=35)
+    # plt.tight_layout()
+    # plt.show()
 
 
 if __name__ == "__main__":
