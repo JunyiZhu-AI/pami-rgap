@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 
 class LeNet(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes=1):
         super(LeNet, self).__init__()
         act = nn.Sigmoid()
         # act = nn.LeakyReLU(negative_slope=0.2)
@@ -21,7 +21,7 @@ class LeNet(nn.Module):
                 ('act', act)
             ])),
             nn.Sequential(OrderedDict([
-                ('layer', nn.Linear(588, 1, bias=False)),
+                ('layer', nn.Linear(588, num_classes, bias=False)),
                 ('act', nn.Identity())
             ]))
         ])

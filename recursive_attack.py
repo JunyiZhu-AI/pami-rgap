@@ -1,3 +1,5 @@
+import torch
+
 from utils import *
 from conv2circulant import *
 
@@ -26,6 +28,17 @@ def inverse_udldu(udldu):
     udldu_ = -u / (1 + torch.exp(u))
     print(f"The error term of inversing udldu: {udldu.item()-udldu_.item():.1e}")
     return u.detach().numpy()
+
+
+def multiclass_first_step(grad, weight, label):
+    weight = torch.tensor(weight.transpose())
+    y = label_to_onehot(torch.tensor(label), weight.shape[0])
+
+    if len(label) == 1:
+        x_ = torch.tensor(grad[label])
+    else:
+        pass
+    pred = torch.matmul(x_, weight)
 
 
 def peeling(in_shape, padding):
