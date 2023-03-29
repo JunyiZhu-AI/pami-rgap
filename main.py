@@ -67,6 +67,9 @@ def main():
     original_dy_dx.reverse()
     modules = net.body[-1::-1]
     x_shape.reverse()
+    x_shape = [np.array(s) for s in x_shape]
+    for s in x_shape:
+        s[0] = 1
     k = None
     last_weight = []
 
@@ -90,24 +93,35 @@ def main():
 
         else:
             # derive activation function
+            da = []
             if isinstance(modules[i].act, nn.LeakyReLU):
-                da = derive_leakyrelu(x_, slope=modules[i].act.negative_slope)
+                for xi in x_:
+                    da.append(derive_leakyrelu(xi, slope=modules[i].act.negative_slope))
             elif isinstance(modules[i].act, nn.Identity):
-                da = derive_identity(x_)
+                for xi in x_:
+                    da.append(derive_identity(xi))
             elif isinstance(modules[i].act, nn.Sigmoid):
-                da = derive_sigmoid(x_)
+                for xi in x_:
+                    da.append(derive_sigmoid(xi))
             else:
                 raise ValueError(f'Please implement the derivative function of {modules[i].act}')
+            da = np.concatenate(da)
 
             # back out neuron output
+            out = []
             if isinstance(modules[i].act, nn.LeakyReLU):
-                out = inverse_leakyrelu(x_, slope=modules[i].act.negative_slope)
+                for xi in x_:
+                    out.append(inverse_leakyrelu(xi, slope=modules[i].act.negative_slope))
             elif isinstance(modules[i].act, nn.Identity):
-                out = inverse_identity(x_)
+                for xi in x_:
+                    out.append(inverse_identity(xi))
             elif isinstance(modules[i].act, nn.Sigmoid):
-                out = inverse_sigmoid(x_)
+                for xi in x_:
+                    out.append(inverse_sigmoid(xi))
             else:
                 raise ValueError(f'Please implement the inverse function of {modules[i].act}')
+            out = np.concatenate(out)
+
             if hasattr(modules[i-1].layer, 'padding'):
                 padding = modules[i-1].layer.padding[0]
             else:
@@ -115,10 +129,17 @@ def main():
 
             # For a mini-batch setting, reconstruct the combination
             in_shape = np.array(x_shape[i-1])
-            in_shape[0] = 1
             # peel off padded entries
             x_mask = peeling(in_shape=in_shape, padding=padding)
-            k = np.multiply(np.matmul(last_weight.transpose(), k)[x_mask], da.transpose())
+            k_ = []
+            for ki, dai in zip(k, da):
+                k_.append(
+                    np.multiply(
+                        dai,
+                        np.matmul(last_weight.transpose(), ki.transpose())[x_mask],
+                    )
+                )
+            k = np.stack(k_)
 
         if isinstance(modules[i].layer, nn.Conv2d):
             x_, last_weight = r_gap(out=out, k=k, x_shape=x_shape[i], module=modules[i], g=g, weight=w)

@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torchvision
 import argparse
@@ -47,11 +48,13 @@ def main():
     if args.batchsize == 1:
         image, label = train_sample
         x = tt(image).unsqueeze(0).to(**setup)
+        y = torch.tensor([label]).to(device=setup["device"])
     else:
         image, label = list(zip(*train_sample))
         x = [tt(im) for im in image]
         x = torch.stack(x).to(**setup)
-    y = label_to_onehot(torch.tensor(label), num_classes).to(**setup)
+        y = torch.tensor(label).to(device=setup["device"])
+    y = label_to_onehot(y, num_classes).to(**setup)
 
     # load parameters
     if args.parameters:
@@ -84,47 +87,66 @@ def main():
             g_norm = [np.linalg.norm(g_) for g_ in g]
             rec_labels = np.argsort(g_norm)[-args.batchsize:]
             x_, k = multiclass_first_step(g, w, rec_labels)
+            last_weight = w
 
         else:
             # derive activation function
+            da = []
             if isinstance(modules[i].act, nn.LeakyReLU):
-                da = derive_leakyrelu(x_, slope=modules[i].act.negative_slope)
+                for xi in x_:
+                    da.append(derive_leakyrelu(xi, slope=modules[i].act.negative_slope))
             elif isinstance(modules[i].act, nn.Identity):
-                da = derive_identity(x_)
+                for xi in x_:
+                    da.append(derive_identity(xi))
             elif isinstance(modules[i].act, nn.Sigmoid):
-                da = derive_sigmoid(x_)
+                for xi in x_:
+                    da.append(derive_sigmoid(xi))
             else:
                 raise ValueError(f'Please implement the derivative function of {modules[i].act}')
+            da = np.concatenate(da)
 
             # back out neuron output
+            out = []
             if isinstance(modules[i].act, nn.LeakyReLU):
-                out = inverse_leakyrelu(x_, slope=modules[i].act.negative_slope)
+                for xi in x_:
+                    out.append(inverse_leakyrelu(xi, slope=modules[i].act.negative_slope))
             elif isinstance(modules[i].act, nn.Identity):
-                out = inverse_identity(x_)
+                for xi in x_:
+                    out.append(inverse_identity(xi))
             elif isinstance(modules[i].act, nn.Sigmoid):
-                out = inverse_sigmoid(x_)
+                for xi in x_:
+                    out.append(inverse_sigmoid(xi))
             else:
                 raise ValueError(f'Please implement the inverse function of {modules[i].act}')
+            out = np.concatenate(out)
+
             if hasattr(modules[i-1].layer, 'padding'):
                 padding = modules[i-1].layer.padding[0]
             else:
                 padding = 0
 
-            # For a mini-batch setting, reconstruct the combination
             in_shape = np.array(x_shape[i-1])
-            in_shape[0] = 1
             # peel off padded entries
             x_mask = peeling(in_shape=in_shape, padding=padding)
-            k = np.multiply(np.matmul(last_weight.transpose(), k)[x_mask], da.transpose())
+            k_ = []
+            for ki, dai in zip(k, da):
+                k_.append(
+                    np.multiply(
+                        dai,
+                        np.matmul(last_weight.transpose(), ki.transpose())[x_mask],
+                    )
+                )
+            k = np.stack(k_)
 
-        if isinstance(modules[i].layer, nn.Conv2d):
-            x_, last_weight = r_gap(out=out, k=k, x_shape=x_shape[i], module=modules[i], g=g, weight=w)
-        else:
-            # In consideration of computational efficiency, for FCN only takes gradient constraints into account.
-            x_, last_weight = fcn_reconstruction(k=k, gradient=g), w
+            if isinstance(modules[i].layer, nn.Conv2d):
+                x_, last_weight = r_gap(out=out, k=k, x_shape=x_shape[i], module=modules[i], g=g, weight=w)
+            else:
+                # In consideration of computational efficiency, for FCN only takes gradient constraints into account.
+                x_, last_weight = fcn_reconstruction(k=k, gradient=g), w
 
     # visualization
-    x_ = x_.reshape(x.shape[-3:]).squeeze()
+
+    x_ = x_.reshape(x.squeeze(1).shape)
     if args.batchsize > 1:
         show_images(image, path=os.path.join(config['path_to_demo'], 'origin.png'), cols=len(image)//2+1)
     else:
@@ -134,16 +156,17 @@ def main():
         plt.axis('off')
         plt.savefig(os.path.join(config['path_to_demo'], 'origin.png'))
 
-    plt.figure('reconstructed')
-    plt.gray()
-    plt.imshow(tp(torch.tensor(x_)))
-    plt.axis('off')
-    plt.savefig(os.path.join(config['path_to_demo'], 'reconstructed.png'))
-    plt.figure('rescale reconstructed')
-    plt.gray()
-    plt.imshow(tp(torch.tensor((x_-x_.min())/x_.max())))
-    plt.axis('off')
-    plt.savefig(os.path.join(config['path_to_demo'], 'rescale_reconstructed.png'))
+    for i in range(args.batchsize):
+        plt.figure('reconstructed')
+        plt.gray()
+        plt.imshow(tp(torch.tensor(x_[i])))
+        plt.axis('off')
+        plt.savefig(os.path.join(config['path_to_demo'], f'reconstructed{i}.png'))
+        plt.figure('rescale reconstructed')
+        plt.gray()
+        plt.imshow(tp(torch.tensor((x_[i] - x_[i].min())/x_[i].max())))
+        plt.axis('off')
+        plt.savefig(os.path.join(config['path_to_demo'], f'rescale_reconstructed{i}png'))
 
 
 if __name__ == "__main__":

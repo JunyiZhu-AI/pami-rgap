@@ -13,15 +13,15 @@ class LeNet(nn.Module):
                 ('act', act)
             ])),
             nn.Sequential(OrderedDict([
-                ('layer', nn.Conv2d(12, 12, kernel_size=5, padding=2, stride=2, bias=False)),
+                ('layer', nn.Conv2d(12, 15, kernel_size=5, padding=2, stride=2, bias=False)),
                 ('act', act)
             ])),
             nn.Sequential(OrderedDict([
-                ('layer', nn.Conv2d(12, 12, kernel_size=5, padding=2, stride=1, bias=False)),
+                ('layer', nn.Conv2d(15, 15, kernel_size=5, padding=2, stride=1, bias=False)),
                 ('act', act)
             ])),
             nn.Sequential(OrderedDict([
-                ('layer', nn.Linear(588, num_classes, bias=False)),
+                ('layer', nn.Linear(735, num_classes, bias=False)),
                 ('act', nn.Identity())
             ]))
         ])

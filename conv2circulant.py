@@ -39,17 +39,20 @@ def circulant_w(x_len, kernel, coors, y_len):
 
 
 def aggregate_g(k, x_len, coors):
-    k = k.squeeze()
-    A_mat = []
-    for coor in coors:
-        A_row = []
-        for c in coor:
-            A_unit = np.zeros(shape=x_len, dtype=np.float32)
-            for i in c:
-                assert A_unit[i[1]] == 0
-                A_unit[i[1]] = k[i[0]]
-            A_row.append(A_unit)
-        A_mat.append(A_row)
-    A_mat = np.array(A_mat)
-    return A_mat.reshape(-1, A_mat.shape[-1])
+    K_bar = []
+    for ki in k:
+        ki = ki.squeeze()
+        A_mat = []
+        for coor in coors:
+            A_row = []
+            for c in coor:
+                A_unit = np.zeros(shape=x_len, dtype=np.float32)
+                for i in c:
+                    assert A_unit[i[1]] == 0
+                    A_unit[i[1]] = ki[i[0]]
+                A_row.append(A_unit)
+            A_mat.append(A_row)
+        A_mat = np.array(A_mat)
+        K_bar.append(A_mat.reshape(-1, A_mat.shape[-1]))
+    return np.concatenate(K_bar, axis=1)
 
